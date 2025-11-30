@@ -1,27 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios/axios.interceptor";
 import CreateProjectModal from "@/components/CreateProjectModal";
-import { useCreateProject } from "@/api/mutations/createProject.mutation";
-import { Project, useProjects } from "@/api/queries/getProjects.query";
-
-
-
-// Fetch projects query
+import Link from "next/link";
+import { useProjects } from "@/api/queries/getProjects.query";
 
 export default function ProjectsPage() {
   const [openModal, setOpenModal] = useState(false);
   const queryClient = useQueryClient();
-  
-  const { data: projectsData, isLoading, error } = useProjects();
-  const createProjectMutation = useCreateProject();
 
-  const projects = projectsData?.data || [];
+  const { data: projectsData, isLoading, error } = useProjects();
+
+  // FIXED: Handle your nested API response format
+  const projects = projectsData?.data?.data || [];
 
   const handleProjectCreated = () => {
-    queryClient.invalidateQueries({ queryKey: ['projects'] });
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
     setOpenModal(false);
   };
 
@@ -90,26 +86,33 @@ export default function ProjectsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <div
+          {projects.map((project: any) => (
+            <Link
               key={project._id}
-              className="bg-white border border-[#D1D5DB] rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+              href={`/projects/${project._id}`}
+              className="bg-white border border-[#D1D5DB] rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow block"
             >
-              <h3 className="font-medium text-[#1F2937] mb-2">{project.name}</h3>
+              <h3 className="font-medium text-[#1F2937] mb-2">
+                {project.name}
+              </h3>
+
               {project.repoUrl && (
-                <p className="text-sm text-gray-500 truncate" title={project.repoUrl}>
+                <p
+                  className="text-sm text-gray-500 truncate"
+                  title={project.repoUrl}
+                >
                   {project.repoUrl}
                 </p>
               )}
+
               <div className="mt-3 flex justify-between items-center text-xs text-gray-400">
                 <span>
-                  {project.members.length + 1} member{project.members.length + 1 !== 1 ? 's' : ''}
+                  {project.members.length + 1} member
+                  {project.members.length + 1 !== 1 ? "s" : ""}
                 </span>
-                <span>
-                  {new Date(project.createdAt).toLocaleDateString()}
-                </span>
+                <span>{new Date(project.createdAt).toLocaleDateString()}</span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
