@@ -34,12 +34,11 @@ export default function TaskList({
   /** ------------------------------------------------
    * FIX: Always convert incoming tasks into an array
    * ------------------------------------------------ */
-  const safeTasks: Task[] =
-    Array.isArray(tasks)
-      ? tasks
-      : Array.isArray(tasks?.tasks)
-      ? tasks.tasks
-      : [];
+  const safeTasks: Task[] = Array.isArray(tasks)
+    ? tasks
+    : Array.isArray(tasks?.tasks)
+    ? tasks.tasks
+    : [];
 
   /* ------------------------------------------------
       Extract Logged-in User ID

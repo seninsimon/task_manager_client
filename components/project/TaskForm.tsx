@@ -2,52 +2,54 @@
 
 import { useState } from "react";
 import api from "@/api/axios/axios.interceptor";
+import { useQuery } from "@tanstack/react-query";
 import { Project } from "@/api/queries/getProjects.query";
 
 export default function TaskForm({ project, onCreated }: { project: Project; onCreated?: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [assigneeEmail, setAssigneeEmail] = useState("");
+  const [assignee, setAssignee] = useState<string | null>(null);
   const [branchName, setBranchName] = useState("");
   const [progress, setProgress] = useState("not_started");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // utility to find member user id by email from project.members (project.members may be array of objects or ids)
-  const getMemberIdByEmail = async (email: string) => {
-    // Try to call backend /projects/user-by-email to get user id
-    try {
-      const res = await api.get(`/projects/user-by-email?email=${encodeURIComponent(email)}`);
-      return res.data.user?._id || res.data.user?.id || null;
-    } catch {
-      return null;
-    }
-  };
+  /* ----------------------------------------------------
+   * Fetch company employees for the dropdown
+   * ---------------------------------------------------- */
+  const { data: employees, isPending } = useQuery({
+    queryKey: ["project-employees", project._id],
+    queryFn: async () => {
+      const r = await api.get(`/projects/${project._id}/company-employees`);
+      return r.data?.data || [];
+    },
+    staleTime: 30000,
+  });
 
   const submit = async () => {
     setError(null);
+
     if (!name) return setError("Task name is required");
     setLoading(true);
 
     try {
-      const assigneeId = assigneeEmail ? await getMemberIdByEmail(assigneeEmail) : null;
-
       const payload = {
         title: name,
         description,
         dueDate: dueDate || null,
-        assignee: assigneeId, // null allowed (unassigned)
+        assignee: assignee ? assignee : null,
         branchName,
         progress,
       };
 
       const res = await api.post(`/projects/${project._id}/tasks`, payload);
+
       if (res?.data) {
         setName("");
         setDescription("");
         setDueDate("");
-        setAssigneeEmail("");
+        setAssignee(null);
         setBranchName("");
         setProgress("not_started");
         onCreated?.();
@@ -88,6 +90,7 @@ export default function TaskForm({ project, onCreated }: { project: Project; onC
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Due Date */}
           <div>
             <label className="text-sm text-[#1F2937]">Due date</label>
             <input
@@ -98,16 +101,26 @@ export default function TaskForm({ project, onCreated }: { project: Project; onC
             />
           </div>
 
+          {/* Assignee Dropdown */}
           <div>
-            <label className="text-sm text-[#1F2937]">Assignee (email)</label>
-            <input
-              value={assigneeEmail}
-              onChange={(e) => setAssigneeEmail(e.target.value)}
-              placeholder="dev@company.com"
+            <label className="text-sm text-[#1F2937]">Assignee</label>
+            <select
+              value={assignee || ""}
+              onChange={(e) => setAssignee(e.target.value || null)}
               className="w-full border border-[#D1D5DB] rounded-lg p-2 mt-1"
-            />
+            >
+              <option value="">Unassigned</option>
+
+              {!isPending &&
+                employees?.map((emp: any) => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.name} — {emp.email}
+                  </option>
+                ))}
+            </select>
           </div>
 
+          {/* Branch Name */}
           <div>
             <label className="text-sm text-[#1F2937]">Branch name</label>
             <input
@@ -119,20 +132,6 @@ export default function TaskForm({ project, onCreated }: { project: Project; onC
           </div>
         </div>
 
-        <div>
-          <label className="text-sm text-[#1F2937]">Progress</label>
-          <select
-            value={progress}
-            onChange={(e) => setProgress(e.target.value)}
-            className="w-full border border-[#D1D5DB] rounded-lg p-2 mt-1"
-          >
-            <option value="not_started">Not started</option>
-            <option value="in_progress">In progress</option>
-            <option value="in_review">In review</option>
-            <option value="done">Done</option>
-          </select>
-        </div>
-
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         <div className="flex justify-end gap-3">
@@ -141,7 +140,7 @@ export default function TaskForm({ project, onCreated }: { project: Project; onC
               setName("");
               setDescription("");
               setDueDate("");
-              setAssigneeEmail("");
+              setAssignee(null);
               setBranchName("");
               setProgress("not_started");
             }}

@@ -42,9 +42,7 @@ export default function TodoItem({
 
       {/* Loading Indicator */}
       {loading && (
-        <span className="text-xs text-gray-400 animate-pulse">
-          Saving...
-        </span>
+        <span className="text-xs text-gray-400 animate-pulse">Saving...</span>
       )}
     </div>
   );

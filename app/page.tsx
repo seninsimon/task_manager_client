@@ -58,7 +58,7 @@ const TASKS = [
   },
 ];
 
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status}: {status: string}) => {
   const styles = {
     'Todo': 'bg-gray-100 text-gray-600',
     'In Progress': 'bg-blue-100 text-blue-700',
